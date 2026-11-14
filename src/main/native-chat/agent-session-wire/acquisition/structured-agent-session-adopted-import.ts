@@ -136,7 +136,8 @@ async function applyAdoptedTranscript(
             itemId: fork.itemId,
             childBoundary: last
               ? { kind: 'item', itemId: agentJournalItemKey(last.identity) }
-              : { kind: 'start' }
+              : { kind: 'start' },
+            plainName: true
           })
         : undefined
     await attached.journal.replaceEpochItems(

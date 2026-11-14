@@ -21,7 +21,8 @@ export async function prepareForkFounding(
     itemId: params.fork.itemId,
     childBoundary: last
       ? { kind: 'item', itemId: agentJournalItemKey(last.identity) }
-      : { kind: 'start' }
+      : { kind: 'start' },
+    plainName: true
   }
 }
 

@@ -292,12 +292,16 @@ export class AgentSessionStoreTransactions {
                 before.conversationCommand !== after.conversationCommand
               )
             })
+          // A same-text user rename changes how a fork's divider names its source, so it counts.
           const renamed = writes.records.upsert
-            .filter(
-              ([id]) =>
-                published.records.get(id)?.conversationName !==
-                draft.records.get(id)?.conversationName
-            )
+            .filter(([id]) => {
+              const before = published.records.get(id)
+              const after = draft.records.get(id)
+              return (
+                before?.conversationName !== after?.conversationName ||
+                before?.conversationNameSource !== after?.conversationNameSource
+              )
+            })
             .map(([id]) => id)
           if (topologyChanged) {
             sessionCrewChanges.notify(new Set(['records']))

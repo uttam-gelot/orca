@@ -9,7 +9,7 @@ import { CompactAgentRow } from './worktree-card-compact-agent-row'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 vi.mock('@/components/dashboard/rows/use-agent-row-conversation-name', () => ({
-  useAgentRowConversationName: () => null
+  useAgentRowConversationNaming: () => ({ name: null, forked: false })
 }))
 
 vi.mock('./CacheTimer', () => ({

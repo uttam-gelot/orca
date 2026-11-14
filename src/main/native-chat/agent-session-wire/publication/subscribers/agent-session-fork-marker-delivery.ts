@@ -17,6 +17,8 @@ export function watchForkSourceNames(refresh: (sources?: readonly string[]) => v
 export class ForkMarkerSubscriptions {
   private stopWatching: (() => void) | undefined
   private readonly childrenBySource = new Map<string, Set<string>>()
+  /** A watched source's own source: renaming it can change how that source is shown. */
+  private readonly parentBySource = new Map<string, string>()
   constructor(
     private readonly port: () => SubscriberDeliveryPort,
     private readonly subscribers: (id: string) => Subscriber[],
@@ -25,9 +27,13 @@ export class ForkMarkerSubscriptions {
   ) {}
 
   add(subscriber: Subscriber): void {
-    const source = subscriber.readForkMarker?.()?.forkedFrom.sessionId
+    const marker = subscriber.readForkMarker?.()
+    const source = marker?.forkedFrom.sessionId
     if (!source) {
       return
+    }
+    if (marker.sourceParentId) {
+      this.parentBySource.set(source, marker.sourceParentId)
     }
     const children = this.childrenBySource.get(source) ?? new Set<string>()
     children.add(subscriber.sessionId)
@@ -43,6 +49,7 @@ export class ForkMarkerSubscriptions {
       children.delete(subscriber.sessionId)
       if (!children.size) {
         this.childrenBySource.delete(source)
+        this.parentBySource.delete(source)
       }
     }
     if (!this.childrenBySource.size) {
@@ -55,7 +62,7 @@ export class ForkMarkerSubscriptions {
     readJournal: (sessionId: string) => AgentSessionJournal | undefined,
     sourceIds?: readonly string[]
   ): void {
-    for (const source of sourceIds ?? this.childrenBySource.keys()) {
+    for (const source of this.affectedSources(sourceIds)) {
       for (const child of this.childrenBySource.get(source) ?? []) {
         const journal = readJournal(child)
         if (journal) {
@@ -65,6 +72,20 @@ export class ForkMarkerSubscriptions {
         }
       }
     }
+  }
+
+  private affectedSources(changed: readonly string[] | undefined): Iterable<string> {
+    if (!changed) {
+      return this.childrenBySource.keys()
+    }
+    const ids = new Set(changed)
+    const sources = new Set(changed)
+    for (const [source, parent] of this.parentBySource) {
+      if (ids.has(parent)) {
+        sources.add(source)
+      }
+    }
+    return sources
   }
 
   refresh(subscriber: Subscriber, journal: AgentSessionJournal, force = false): void {

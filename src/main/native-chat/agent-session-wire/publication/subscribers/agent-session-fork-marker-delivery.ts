@@ -90,6 +90,10 @@ export class ForkMarkerSubscriptions {
 
   refresh(subscriber: Subscriber, journal: AgentSessionJournal, force = false): void {
     const marker = subscriber.readForkMarker?.()
+    // A source that was unreadable when watching began names its own source only now.
+    if (marker?.sourceParentId && this.childrenBySource.has(marker.forkedFrom.sessionId)) {
+      this.parentBySource.set(marker.forkedFrom.sessionId, marker.sourceParentId)
+    }
     const view = JSON.stringify(marker)
     if (!force && subscriber.forkMarkerView === view) {
       return
